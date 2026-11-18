@@ -8,6 +8,7 @@ My collection of skills for AI coding agents such as Claude Code. Each skill is 
 - **wayfinder.** Plans a large piece of work as a map of decision tickets, then resolves them one at a time. This is my edited copy of Matt Pocock's skill. It uses a local `.plan/` folder as the tracker and pins research subagents to a cheaper model. See `NOTICE`.
 - **wayfinder-master.** Hands ready wayfinder tickets to `wayfinder-runner` threads in batches. It picks the cheapest model that can do each ticket and merges each finished batch.
 - **wayfinder-runner.** Runs the next wayfinder ticket from start to finish. It implements the ticket, has a three-model council audit it, commits, watches CI, and fixes failures.
+- **council-audit.** Has three auditors from three providers (Claude, Gemini and GPT) judge finished work in parallel. Each returns APPROVE or DISAPPROVE, a score from 1 to 10 and a list of problems. `wayfinder-runner` uses it as its audit gate.
 - **youtube-breakdown.** Fetches a YouTube transcript and turns it into a short breakdown with a TL;DR, key points and timestamps.
 - **apple.** Applies Apple's Human Interface Guidelines, with exact numbers for tap targets, type sizes, spacing, safe areas and contrast.
 - **link-skills.** Keeps one global skills folder and links it into every AI tool you have installed. The agent calls it when a skill is missing from a tool or after you add a skill.
@@ -39,7 +40,8 @@ Link each skill under the folder name it already has. Some skills call scripts a
 
 ## Skills that depend on others
 
-- `wayfinder-runner` calls a `council-audit` skill that isn't in this repo yet.
+- `wayfinder-runner` calls `council-audit`, so install the two together.
+- `council-audit` relies on T3 Code's `delegate_task` tool, the Jev toolbox's `ask_jev_model_audit` tool, and the `claude` and `gemini` command line tools.
 - The wayfinder skills expect a `.plan/` folder in your project to track maps and tickets.
 - `youtube-breakdown` runs `scripts/yt.py` and needs Python 3.
 
