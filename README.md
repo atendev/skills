@@ -17,7 +17,7 @@ The agent calls it when you ask ("simply", "simplify", "ELI5", "tldr", "too tech
 Clone the repo into your skills folder.
 
 ```sh
-git clone https://github.com/<your-username>/simply.git ~/.claude/skills/simply
+git clone https://github.com/atendev/simply.git ~/.claude/skills/simply
 ```
 
 Start a new session so the agent picks up the skill.
