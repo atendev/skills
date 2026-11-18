@@ -1,42 +1,37 @@
-# simply
+# skills
 
-A skill for AI coding agents that makes them write in plain, easy English. It also works as a summary tool when an AI gives you too much text.
+My collection of skills for AI coding agents such as Claude Code. Each skill is a folder under `skills/` with a `SKILL.md` that tells the agent when to use it and what to do.
 
-## What it does
+## Skills
 
-- Answers first, then gives background.
-- Uses short sentences and everyday words.
-- Explains jargon once, or replaces it with a plain word.
-- Keeps formatting light. Short paragraphs, simple lists, little bold.
-- Shrinks long text into a bottom line, a few key points, and what you need to decide. It ends with a "Left out" line so you know what was cut.
-
-The agent calls it when you ask ("simply", "simplify", "ELI5", "tldr", "too technical"). It also calls it on its own before sending a long reply, a final report after a long task, or an explanation full of technical terms. The full list of triggers is in `SKILL.md`.
+- **simply.** Makes the agent write in plain, easy English. It also shrinks long text into a short summary. The agent calls it when you ask ("simply", "tldr", "too technical") and on its own before long or jargon-heavy replies.
+- **wayfinder.** Plans a large piece of work as a map of decision tickets, then resolves them one at a time. This is my edited copy of Matt Pocock's skill. It uses a local `.plan/` folder as the tracker and pins research subagents to a cheaper model. See `NOTICE`.
+- **wayfinder-master.** Hands ready wayfinder tickets to `wayfinder-runner` threads in batches. It picks the cheapest model that can do each ticket and merges each finished batch.
+- **wayfinder-runner.** Runs the next wayfinder ticket from start to finish. It implements the ticket, has a three-model council audit it, commits, watches CI, and fixes failures.
+- **youtube-breakdown.** Fetches a YouTube transcript and turns it into a short breakdown with a TL;DR, key points and timestamps.
+- **apple.** Applies Apple's Human Interface Guidelines, with exact numbers for tap targets, type sizes, spacing, safe areas and contrast.
 
 ## Install
 
-Clone the repo into your skills folder.
+Clone the repo, then link the skills you want into your skills folder.
 
 ```sh
-git clone https://github.com/atendev/simply.git ~/.claude/skills/simply
+git clone https://github.com/atendev/skills.git ~/Documents/Github/skills
+ln -s ~/Documents/Github/skills/skills/simply ~/.claude/skills/simply
 ```
 
-Start a new session so the agent picks up the skill.
+Link every skill under the folder name it already has. Some skills call scripts at `~/.claude/skills/<name>/`, so a different folder name breaks them. Start a new session so the agent finds the skills.
 
-## Use it
+## Skills that depend on others
 
-Ask for it by name, or let the agent call it.
+- `wayfinder-runner` calls a `council-audit` skill that isn't in this repo yet.
+- The wayfinder skills expect a `.plan/` folder in your project to track maps and tickets.
+- `youtube-breakdown` runs `scripts/yt.py` and needs Python 3.
 
-- "Simply, what does this error mean?"
-- "tldr this" (after pasting a long text)
-- "That was too long, simplify it."
+## Adding a skill
 
-To turn it off, say "normal mode" or "stop simply".
-
-## Files
-
-- `SKILL.md` has the instructions the agent follows.
-- `LICENSE` is the MIT license.
+Make a folder under `skills/` with a `SKILL.md` that starts with a `name` and a `description`. The description is what lets the agent decide when to use it.
 
 ## License
 
-MIT. See `LICENSE`.
+MIT. See `LICENSE`. The `wayfinder` skill is derived from Matt Pocock's work, which is also MIT. See `NOTICE`.
