@@ -6,20 +6,20 @@ user-invocable: true
 
 # Apple human interface guidelines
 
-Apply this skill automatically whenever designing, building, critiquing, or styling any mobile screen, native app, web-based mobile prototype, iOS, iPadOS, macOS, watchOS, tvOS, or visionOS interface, or when invoked via `/apple`.
+Use this skill automatically whenever you design, build, critique, or style a mobile screen, native app, web-based mobile prototype, or an iOS, iPadOS, macOS, watchOS, tvOS, or visionOS interface. Also use it when called with `/apple`.
 
-Every numeric value below comes from Apple's Human Interface Guidelines. Do not guess or substitute arbitrary pixel values when laying out screens, sizing controls, choosing typography, or picking colors.
+Every number below comes from Apple's Human Interface Guidelines. Do not guess or swap in your own pixel values for layout, control sizes, type, or colors.
 
 ## Core design principles
 
-- **Clarity.** Text is legible at every size, icons are precise and lucid, adornments are subtle and appropriate, and a sharpened focus on functionality motivates the design.
-- **Deference.** Fluid motion and a crisp, clean interface help people understand and interact with content while never competing with it. Chrome stays minimal and translucent so content fills the screen.
-- **Depth.** Distinct visual layers and realistic motion convey hierarchy, impart vitality, and facilitate understanding. Touch and discoverability heighten delight without causing someone to lose context.
-- **Platform integrity.** Use system navigation bars, tab bars, sheets, lists, switches, segmented controls, and SF Symbols. Avoid web-style hamburger menus, custom back gestures that break left-edge swipe, hover-only mobile affordances, or unstyled HTML controls.
+- **Clarity.** Text is easy to read at every size. Icons are clear. Decoration is subtle. Function drives the design.
+- **Deference.** Smooth motion and a clean interface help people use the content without competing with it. Keep bars and frames minimal and translucent so content fills the screen.
+- **Depth.** Distinct layers and natural motion show hierarchy and help people understand the screen. Touch and discovery feel good without making people lose their place.
+- **Platform integrity.** Use system navigation bars, tab bars, sheets, lists, switches, segmented controls, and SF Symbols. Avoid web-style hamburger menus, custom back gestures that break the left-edge swipe, hover-only controls on mobile, and unstyled HTML controls.
 
 ## Touch, click, and gaze targets
 
-Every interactive element must meet the minimum hit target for its platform, even when the visible glyph or button frame is smaller. Expand the hit region with padding or `contentShape` when the visual control is compact.
+Every interactive element must meet the minimum hit target for its platform, even when the visible icon or button is smaller. If the control is small, widen the hit area with padding or `contentShape`.
 
 | Platform | Input method | Minimum hit target | Minimum spacing between targets | Recommended spacing | Notes |
 | --- | --- | --- | --- | --- | --- |
@@ -32,15 +32,15 @@ Every interactive element must meet the minimum hit target for its platform, eve
 
 ## Typography and Dynamic Type scale
 
-Apple platforms use San Francisco: `SF Pro` on iOS, iPadOS, macOS, tvOS, and visionOS; `SF Compact` on watchOS; `SF Mono` for code and tabular numbers; `New York` for editorial serif moments.
+Apple platforms use San Francisco: `SF Pro` on iOS, iPadOS, macOS, tvOS, and visionOS; `SF Compact` on watchOS; `SF Mono` for code and numbers that must line up; `New York` for serif text.
 
-- **Optical size threshold.** Use `SF Pro Text` for sizes below `20 pt` and `SF Pro Display` for sizes `20 pt` and above. Modern variable `SF Pro` interpolates optical size `opsz` automatically at the `20 pt` boundary.
-- **Minimum legible sizes.** Never go below `11 pt` on iOS and iPadOS, `10 pt` on macOS, `12 pt` on watchOS and visionOS, or `23 pt` on tvOS.
-- **Tabular numerals.** Apply `font-variant-numeric: tabular-nums` or `.monospacedDigit` on timers, prices, counters, and aligned data columns.
+- **Optical size threshold.** Use `SF Pro Text` below `20 pt` and `SF Pro Display` at `20 pt` and above. The variable `SF Pro` font switches optical size `opsz` automatically at `20 pt`.
+- **Minimum text sizes.** Never go below `11 pt` on iOS and iPadOS, `10 pt` on macOS, `12 pt` on watchOS and visionOS, or `23 pt` on tvOS.
+- **Tabular numerals.** Use `font-variant-numeric: tabular-nums` or `.monospacedDigit` on timers, prices, counters, and number columns.
 
 ### iOS, iPadOS, and visionOS default Dynamic Type scale at Large setting
 
-The system default Dynamic Type size is `Large`. Tracking values are given in `1/1000 em`, points, and CSS `em` equivalents.
+The default Dynamic Type size is `Large`. Tracking (letter spacing) is given in `1/1000 em`, points, and CSS `em`.
 
 | Text style | Default weight | Emphasized weight | Size | Line height / leading | Tracking in 1/1000 em | Tracking in pt | CSS letter-spacing | Typical usage |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -76,7 +76,7 @@ Values are formatted as `size / leading` in points.
 
 ### Accessibility Dynamic Type progression from AX1 to AX5
 
-At Accessibility sizes `AX1` through `AX5`, horizontal multi-column rows must reflow into vertical stacks, side-by-side labels and values stack vertically, and line limits expand so text never truncates.
+At Accessibility sizes `AX1` through `AX5`, multi-column rows must become vertical stacks. Side-by-side labels and values stack on top of each other. Raise line limits so text never gets cut off.
 
 | Text style | `AX1` | `AX2` | `AX3` | `AX4` | `AX5` |
 | --- | --- | --- | --- | --- | --- |
@@ -134,10 +134,10 @@ At Accessibility sizes `AX1` through `AX5`, horizontal multi-column rows must re
 
 ### Spatial grid
 
-- **Base grid unit.** Use an `8 pt` spatial grid of `8, 16, 24, 32, 40, 48, 64 pt` for layout margins, section spacing, card padding, and component heights.
-- **Half-step unit.** Use `4 pt` for tight vertical pairing between a title and subtitle, or between an icon and its inline label.
-- **Micro-step unit.** Use `2 pt` only for optical alignment, segmented control track insets, or toggle switch thumb insets.
-- **Hairline dividers.** Use `0.33 pt` on `@3x` displays, which equals `1 physical px`, and `0.5 pt` on `@2x` displays, which also equals `1 physical px`.
+- **Base grid unit.** Use an `8 pt` grid of `8, 16, 24, 32, 40, 48, 64 pt` for margins, section spacing, card padding, and component heights.
+- **Half step.** Use `4 pt` to pair a title with its subtitle, or an icon with its label.
+- **Micro step.** Use `2 pt` only to fine-tune alignment, or for segmented control track insets and switch thumb insets.
+- **Hairline dividers.** Use `0.33 pt` on `@3x` displays and `0.5 pt` on `@2x` displays. Both equal `1 physical px`.
 
 ### Screen margins and readable content guides
 
@@ -153,11 +153,11 @@ At Accessibility sizes `AX1` through `AX5`, horizontal multi-column rows must re
 | watchOS screen edges | `8 pt` to `12 pt`, `4.5%` of screen width | `8 pt` to `10 pt` inside platters | `16 pt` to `22 pt` | `8 pt` between platters |
 | tvOS overscan safe zone | `90 pt` left/right, `60 pt` top/bottom | `24 pt` inside cards | `114 pt` horizontal | `48 pt` to `64 pt` between shelves |
 
-- **Readable content width `readableContentGuide`.** Cap long-form prose and wide form rows at `672 pt` maximum width, which yields `60 to 75` characters per line at `17 pt` Body, with `50 to 65` characters optimal on mobile. On iPad Pro at `1032 pt` width and on macOS, center or align readable content within the `672 pt` guide rather than stretching text edge-to-edge.
+- **Readable content width `readableContentGuide`.** Limit long text and wide form rows to `672 pt`. That gives `60 to 75` characters per line at `17 pt` Body, and `50 to 65` is best on mobile. On iPad Pro at `1032 pt` width and on macOS, center or align the text inside the `672 pt` guide. Do not stretch it edge to edge.
 
 ### Safe area insets
 
-Never place interactive controls, text, or unclipped content inside the status bar, Dynamic Island, sensor housing notch, home indicator region, or rounded screen corners. Background colors, collection scroll views, and blurred materials extend edge-to-edge behind safe areas.
+Never put controls, text, or other content in the status bar, Dynamic Island, notch, home indicator area, or rounded screen corners. Background colors, scroll views, and blurred materials still run edge to edge behind the safe areas.
 
 | Device family | Portrait top safe area | Portrait bottom safe area | Landscape left and right safe area | Landscape top safe area | Landscape bottom safe area |
 | --- | --- | --- | --- | --- | --- |
@@ -250,9 +250,9 @@ Never place interactive controls, text, or unclipped content inside the status b
 
 ## Corner radii and concentric geometry
 
-Apple interfaces use continuous curvature, `CALayerCornerCurve.continuous` or SwiftUI `.continuous`, which blends straight edges into curves smoothly without the abrupt tangent jump of standard CSS circles.
+Apple interfaces use continuous curves, `CALayerCornerCurve.continuous` or SwiftUI `.continuous`. They blend straight edges into curves smoothly. A standard CSS circle corner has an abrupt switch where the curve starts.
 
-- **Concentric radius rule.** When a rounded element sits inside a rounded container with uniform padding $d$, calculate the inner radius by subtracting $d$ from the outer radius, floored at zero: $R_{\text{inner}} = R_{\text{outer}} - d$. For example, a card with $R_{\text{outer}} = 20\text{ pt}$ and $8\text{ pt}$ padding contains an inner image or button with $R_{\text{inner}} = 12\text{ pt}$.
+- **Concentric radius rule.** When a rounded element sits inside a rounded container with equal padding $d$, subtract $d$ from the outer radius to get the inner radius, and never go below zero: $R_{\text{inner}} = R_{\text{outer}} - d$. For example, a card with $R_{\text{outer}} = 20\text{ pt}$ and $8\text{ pt}$ padding holds an image or button with $R_{\text{inner}} = 12\text{ pt}$.
 
 | Element tier | Corner radius | Notes |
 | --- | --- | --- |
@@ -279,7 +279,7 @@ Test every foreground-background pair in all four system modes: Light, Dark, Hig
 
 ### Apple system accent colors
 
-Never hard-code a single static hex value for interactive elements. Use semantic system colors or CSS custom properties that switch between Light, Dark, High-Contrast Light, and High-Contrast Dark.
+Never hard-code one fixed hex value for interactive elements. Use semantic system colors, or CSS custom properties that switch between Light, Dark, High-Contrast Light, and High-Contrast Dark.
 
 | Semantic token | Light mode hex and RGB | Dark mode hex and RGB | High-contrast Light hex | High-contrast Dark hex |
 | --- | --- | --- | --- | --- |
@@ -309,7 +309,7 @@ Never hard-code a single static hex value for interactive elements. Use semantic
 
 ### Semantic labels, backgrounds, fills, and separators
 
-In Dark Mode, Apple distinguishes **Base** surfaces, which are full-screen root views, from **Elevated** surfaces, which are sheets, popovers, split-view sidebars, and floating cards, by raising background luminance rather than adding dark drop shadows.
+In Dark Mode, Apple tells **Base** surfaces (full-screen root views) from **Elevated** surfaces (sheets, popovers, split-view sidebars, and floating cards) by making elevated backgrounds lighter. It does not use dark drop shadows.
 
 | Semantic token | Light mode value | Dark mode Base value | Dark mode Elevated value | Purpose |
 | --- | --- | --- | --- | --- |
@@ -332,7 +332,7 @@ In Dark Mode, Apple distinguishes **Base** surfaces, which are full-screen root 
 
 ## Materials, blur, and elevation
 
-Never use arbitrary opaque gray bars or uncalibrated glassmorphism. Use Apple's system material hierarchy so scrolled content lends subtle color vibrancy through bars, sheets, and overlays.
+Never use plain opaque gray bars or home-made frosted glass. Use Apple's system materials, so scrolled content shows through bars, sheets, and overlays with a soft color tint.
 
 | Material token | Blur radius | Saturation boost | Light mode tint overlay | Dark mode tint overlay | Border hairline |
 | --- | --- | --- | --- | --- | --- |
@@ -347,7 +347,7 @@ Never use arbitrary opaque gray bars or uncalibrated glassmorphism. Use Apple's 
 
 ### Spring animation parameters
 
-Apple motion uses spring physics driven by velocity and gesture continuation, never linear easing.
+Apple motion uses springs that follow the speed of the user's gesture. Never use linear easing.
 
 | Interaction | Response or duration | Damping ratio | Equivalent cubic-bezier | Behavior |
 | --- | --- | --- | --- | --- |
@@ -374,15 +374,15 @@ Apple motion uses spring physics driven by velocity and gesture continuation, ne
 
 ## Implementation checklist for every app or mobile screen
 
-When generating SwiftUI, UIKit, React Native, Flutter, or HTML and CSS mobile screens, verify all ten rules before finishing:
+When you generate SwiftUI, UIKit, React Native, Flutter, or HTML and CSS mobile screens, check all ten rules before you finish:
 
-1. **Viewport and safe areas.** Frame mobile prototypes in a real Apple viewport such as `393 x 852 pt` for iPhone 16 or `402 x 874 pt` for iPhone 16 Pro, with a `59 pt` top safe area and `34 pt` bottom home indicator inset.
-2. **Tap targets.** Confirm every tappable control has at least a `44 x 44 pt` hit box, `60 x 60 pt` on visionOS, `28 x 28 pt` on macOS, and `8 pt` minimum separation.
+1. **Viewport and safe areas.** Size mobile prototypes to a real Apple viewport such as `393 x 852 pt` for iPhone 16 or `402 x 874 pt` for iPhone 16 Pro, with a `59 pt` top safe area and `34 pt` bottom home indicator inset.
+2. **Tap targets.** Check that every tappable control has at least a `44 x 44 pt` hit box, `60 x 60 pt` on visionOS, `28 x 28 pt` on macOS, and `8 pt` minimum separation.
 3. **Typography.** Use the exact Apple Dynamic Type ramp: `34 pt` Large Title, `28 pt` Title 1, `22 pt` Title 2, `20 pt` Title 3, `17 pt` Headline and Body with `-0.41 pt` tracking, `15 pt` Subheadline, `13 pt` Footnote, `12 pt` Caption 1, and `11 pt` Caption 2 floor.
 4. **Margins and grid.** Enforce `16 pt` outer horizontal screen margins, `20 pt` on Plus and Max, `16 pt` internal card padding for a `32 pt` total text inset in inset-grouped lists, `44 pt` minimum row height, `60 pt` for subtitle rows, and `8 pt` grid multiples.
 5. **System navigation.** Use a `44 pt` inline navigation bar, `96 pt` with Large Title, and a `49 pt` tab bar, `83 pt` with safe area, holding `2 to 5` top-level destinations. Never invent a hamburger drawer or bottom action bar disguised as a tab bar.
-6. **Semantic colors.** Use Apple's semantic color tokens: `label`, `secondaryLabel` `#3C3C4399` light and `#EBEBF599` dark, `tertiaryLabel` `#3C3C434D` light and `#EBEBF54D` dark, `systemGroupedBackground` `#F2F2F7` light and `#000000` dark, `secondarySystemGroupedBackground` `#FFFFFF` light and `#1C1C1E` dark, and support both Light and Dark Mode using elevated luminance `#1C1C1E` to `#2C2C2E` in Dark Mode.
-7. **Contrast ratios.** Verify `4.5:1` minimum contrast on text under `17 pt`, `7.0:1` for Increased Contrast, and `3.0:1` minimum on large text `>= 17 pt` and active icons.
-8. **Corner concentricity.** Use continuous squircle corners: `10 pt` to `12 pt` on grouped cards and inputs, `14 pt` on alerts and large buttons, `7 pt` on `29 x 29 pt` icon tiles, and subtract padding $d$ from outer radius $R_{\text{outer}}$ for nested elements.
+6. **Semantic colors.** Use Apple's semantic color tokens: `label`, `secondaryLabel` `#3C3C4399` light and `#EBEBF599` dark, `tertiaryLabel` `#3C3C434D` light and `#EBEBF54D` dark, `systemGroupedBackground` `#F2F2F7` light and `#000000` dark, and `secondarySystemGroupedBackground` `#FFFFFF` light and `#1C1C1E` dark. Support both Light and Dark Mode, and use the lighter `#1C1C1E` to `#2C2C2E` backgrounds for elevated surfaces in Dark Mode.
+7. **Contrast ratios.** Check for at least `4.5:1` contrast on text under `17 pt`, `7.0:1` for Increased Contrast, and `3.0:1` minimum on large text `>= 17 pt` and active icons.
+8. **Corner concentricity.** Use continuous (squircle) corners: `10 pt` to `12 pt` on grouped cards and inputs, `14 pt` on alerts and large buttons, `7 pt` on `29 x 29 pt` icon tiles, and subtract padding $d$ from outer radius $R_{\text{outer}}$ for nested elements.
 9. **Materials.** Use `backdrop-filter: saturate(180%) blur(20px)` on bars and sheets so content scrolls underneath with subtle vibrancy.
 10. **Platform fidelity.** Use `0.33 pt` or `0.5 pt` inset separators, `51 x 31 pt` switches, `28 pt` or `32 pt` segmented controls, `270 pt` alerts, and weight-matched SF Symbols.

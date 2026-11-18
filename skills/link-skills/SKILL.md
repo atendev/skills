@@ -7,13 +7,13 @@ description: Link skills from one global folder (~/.agents/skills) into every in
 
 ## What it does
 
-One global folder, the hub, holds every skill. The hub is `~/.agents/skills` by default. This skill gives each installed AI tool one symlink per skill, from the tool's own skills folder to the hub entry. Skills that ship with a tool stay in that tool's own folder and are never touched.
+One global folder, the hub, holds every skill. The hub is `~/.agents/skills` by default. This skill gives each installed AI tool one symlink (a shortcut) per skill, from the tool's own skills folder to the hub. Skills that ship with a tool stay in that tool's own folder and are never touched.
 
-It also makes sure each tool's global instruction file holds a short install rule note, so agents know where new skills go. The note only goes in if the file lacks it. It is never rewritten.
+It also adds a short install rule note to each tool's global instruction file, so agents know where new skills go. The note is added only if the file lacks it, and it is never rewritten.
 
 The script creates folders and symlinks, and appends a short note to instruction files. It never deletes or overwrites anything.
 
-Instruction files it edits: `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md` and `~/.gemini/GEMINI.md`. A missing file is created. A symlink or an unwritable file is left alone. Cursor, Cline and Kiro get a message with the note text to paste yourself.
+It edits these instruction files: `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md` and `~/.gemini/GEMINI.md`. It creates a missing file. It leaves a symlink or an unwritable file alone. For Cursor, Cline and Kiro, it prints the note for you to paste.
 
 ## Install rule
 
@@ -21,17 +21,17 @@ Install new skills into `~/.agents/skills`, then run this skill so every AI tool
 
 ## Steps
 
-1. Find the script at `scripts/link-skills.sh` inside this skill's own folder. This skill is usually reached through a symlink, so resolve the real path first (for example `readlink -f` or `cd -P`).
+1. Find the script at `scripts/link-skills.sh` inside this skill's own folder. You usually reach this skill through a symlink, so find the real path first (for example with `readlink -f` or `cd -P`).
 2. Run it with `--dry-run` and any flags the user needs. It prints a plan and changes nothing.
-3. Explain the plan in plain words. Say how many links it will create, which instruction files get the note, which tools get them, and anything it will leave alone.
-4. Ask the user before running it for real.
-5. Only after the user says yes, run the same command again with `--yes` instead of `--dry-run`.
-6. Report the result. Run the same command with `--dry-run` once more if you want to confirm that everything shows as `ok`.
+3. Explain the plan in plain words. Say how many links it will create, which instruction files get the note, which tools are affected, and what it will leave alone.
+4. Ask the user before you run it for real.
+5. Only after the user says yes, run the same command with `--yes` instead of `--dry-run`.
+6. Report the result. If you want to confirm, run the same command with `--dry-run` again and check that everything shows as `ok`.
 
 Rules:
 
-- Never delete or overwrite anything, and never run `ln -sf`, `rm` or `mv` to fix a problem.
-- A `conflict` is a link that is broken or points somewhere else. An `own copy` is a real folder or file that sits where a link would go. Report both to the user. Do not fix them silently.
+- Never delete or overwrite anything. Never run `ln -sf`, `rm` or `mv` to fix a problem.
+- A `conflict` is a link that is broken or points somewhere else. An `own copy` is a real folder or file where a link would go. Report both to the user. Do not fix them quietly.
 - Tell the user to restart each tool so it picks up the new skills.
 
 ## Flags
@@ -48,4 +48,4 @@ Rules:
 | `--yes` | Do not ask before making changes. |
 | `--list-tools` | Print the installed tools and their skills folders, then exit. |
 
-A tool counts as installed if its command is on PATH or `~/.<tool>` exists. Its skills folder is `~/.<tool>/skills`.
+A tool counts as installed if its command is on your `PATH` or `~/.<tool>` exists. Its skills folder is `~/.<tool>/skills`.

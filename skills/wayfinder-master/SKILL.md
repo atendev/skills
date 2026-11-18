@@ -4,40 +4,40 @@ description: Dispatch Wayfinder frontier tickets to /wayfinder-runner child thre
 disable-model-invocation: true
 ---
 
-This thread is a **dispatcher**. It routes tickets, watches CI, keeps the map and merges each batch. Children resolve every ticket, grilling included. The master's context stays small because it holds only `map.md`, one ticket body at a time, and each child's short report. Diffs, audit rounds, interviews and CI logs stay inside the children.
+This thread is a **dispatcher**. It sends tickets to children, watches CI, keeps the map, and merges each batch. Children resolve every ticket, grilling included. The master's context stays small because it holds only `map.md`, one ticket body at a time, and each child's short report. Diffs, audit rounds, interviews and CI logs stay inside the children.
 
 ## Standing rules
 
-- Run the Jev intake audit once for this thread, as CLAUDE.md says. Its halt rule covers this thread's own model only.
+- Run the Jev intake audit once for this thread, as CLAUDE.md says. Its halt rule covers only this thread's own model.
 - The tracker is `.plan/` when the repo has `.plan/README.md`. Read its "Rules" and "Resolving a ticket" sections once. Otherwise use the issue tracker.
-- Read `.plan/maps/<slug>/map.md` once at the start and again after each batch merges. Read a ticket body only right before routing it.
+- Read `.plan/maps/<slug>/map.md` once at the start, and again after each batch merges. Read a ticket body only right before you route it.
 - Refer to every ticket by its name.
-- The master works on the **master branch**, `wayfinder/<slug>-master`, cut from the default branch. It holds map edits (claims, Decisions lines, new tickets) and the merged work of every batch. Children's worktrees start from its HEAD, so commit there before spawning.
+- The master works on the **master branch**, `wayfinder/<slug>-master`, cut from the default branch. It holds the map edits (claims, Decisions lines, new tickets) and the merged work of every batch. Children's worktrees start from its latest commit, so commit there before you start any child.
 - Children commit and push their own branch. Only the master merges, and only at the end of a batch.
-- Call `orchestrator_capabilities` once before the first spawn, to learn the valid model IDs and whether `effort` is an option.
-- One master per map. Masters on different projects run side by side, and each has its own budget of 3 child threads, set in [Pick a batch](#loop). On Nov 13, five runs with no cap put 25 Opus threads in one hour and used up the 5-hour limit mid-batch. Before tagging this thread, run `python3 -I ~/.claude/skills/wayfinder-master/active-runs.py --slug <slug>`. A `same map:` run with 0 active child threads is an old master the user replaced to get a fresh context, so go ahead without asking. If a `same map:` run has active child threads, ask with AskUserQuestion: "Leave it to that master (Recommended)" or "Start anyway". On "Leave it", end the turn.
-- At the start, note the UTC start time and set `<run>` to the Unix seconds. Then run `printf 'wfm-%s\n' '<slug>-master-<run>'` once, which tags this thread's transcript for the [Token report](#token-report).
+- Call `orchestrator_capabilities` once before the first child starts. It tells you the valid model IDs and whether `effort` is an option.
+- One master per map. Masters on different projects run side by side, and each has its own budget of 3 child threads, set in [Pick a batch](#loop). On Nov 13, five runs with no cap put 25 Opus threads in one hour and used up the 5-hour limit mid-batch. Before tagging this thread, run `python3 -I ~/.claude/skills/wayfinder-master/active-runs.py --slug <slug>`. A `same map:` run with 0 active child threads is an old master that the user replaced to get a fresh context, so go ahead without asking. If a `same map:` run has active child threads, ask with AskUserQuestion: "Leave it to that master (Recommended)" or "Start anyway". On "Leave it", end the turn.
+- At the start, note the UTC start time and set `<run>` to the Unix seconds. Then run `printf 'wfm-%s\n' '<slug>-master-<run>'` once. This tags this thread's transcript for the [Token report](#token-report).
 
 ## Loop
 
-1. **Pick a batch.** Run `python3 -I ~/.claude/skills/wayfinder-master/active-runs.py --run <run>` and read its `slots free:` line, which counts only this run's children. A child stops holding a slot when its turn ends or it is cancelled. The batch size is the free slots, at most 3. With no slot free, tell the user which of this run's children hold them and end the turn. Take that many open, unblocked, unclaimed tickets from `map.md` with no blocking edge between them. A ticket ending in a `Last child thread:` line was given up in an earlier batch. Resume that thread as [Escalation](#escalation) describes, instead of steps 2 and 3.
+1. **Pick a batch.** Run `python3 -I ~/.claude/skills/wayfinder-master/active-runs.py --run <run>` and read its `slots free:` line. It counts only this run's children. A child frees its slot when its turn ends or it is cancelled. The batch size is the number of free slots, at most 3. If no slot is free, tell the user which of this run's children hold them and end the turn. Take that many open, unblocked, unclaimed tickets from `map.md`, with no blocking link between them. A ticket that ends with a `Last child thread:` line was given up in an earlier batch. Resume that thread as [Escalation](#escalation) describes, instead of doing steps 2 and 3.
 2. **Pick each child's model.** The ticket's `type:` sets the default:
    - research: sonnet, medium effort
    - task: sonnet, high effort
    - grilling or design: opus, high effort
 
-   Then run `ask_jev_model_audit` with `current_model` set to this thread's model ID and `task_prompt` set to the ticket body and its `type:` only. Jev can raise a sonnet default to opus, and only when it returns opus with `task_scope` of `complex_architecture` and `model_confidence` of 70% or more. Effort stays at the default, never above high. xhigh and max are reserved for [Escalation](#escalation) resumes. The audit's `model_match` and `recommended_skills` play no part in routing, and a Jev error leaves the default in place.
+   Then run `ask_jev_model_audit` with `current_model` set to this thread's model ID and `task_prompt` set to only the ticket body and its `type:`. Jev can raise a sonnet default to opus, but only when it returns opus with a `task_scope` of `complex_architecture` and a `model_confidence` of 70% or more. Effort stays at the default and never goes above high. Keep xhigh and max for [Escalation](#escalation) resumes. The audit's `model_match` and `recommended_skills` play no part in routing. If Jev returns an error, keep the default.
 
    Record the pick and the reason (default, or Jev raise with its confidence) for the final report.
 3. **Claim and spawn.** Claim every ticket in the batch on the master branch in one commit. Then call `delegate_task` once per ticket with `isolation: "worktree"`, `mode: "async"`, `role` set to `implementation`, `research` or `design` (grilling), `target.model` and `target.options.effort` from step 2, a title of the ticket's name, and the brief from [Child brief](#child-brief). Keep each ticket's `taskId` and `childThreadId`.
-4. **Point the user at grilling children.** A grilling child interviews the user in its own thread. Tell the user once which thread to open, using its link. Then end the turn and wait for reports.
+4. **Point the user at grilling children.** A grilling child interviews the user in its own thread. Tell the user once which thread to open, with its link. Then end the turn and wait for reports.
 5. **Answer each report** as it arrives. Each one starts with a status word:
    - `PUSHED`: run [CI](#ci).
    - `DONE`: mark the ticket done and wait for the rest of the batch.
    - `STOPPED`: run [Escalation](#escalation).
    - `HANDOFF`: run [Handoff](#handoff).
    - `QUESTIONS`: put the child's questions, options and recommendations into one `AskUserQuestion`, then send the answers to the child with `t3_thread_send`.
-   - **No status word**: a child whose turn ended with no status word is idle, not working. Read its thread status with `t3_thread_read` (limit 3). If no run is active, send it `t3_thread_send` "Your turn ended without a status word. Continue now and return DONE, STOPPED, HANDOFF, PUSHED or QUESTIONS." and say so in the next message. Never tell the user "still waiting" about a child with no active run. Before any "waiting" message, check that every unreported child has a running run.
+   - **No status word**: a child whose turn ended with no status word is idle, not working. Read its thread status with `t3_thread_read` (limit 3). If no run is active, send it this with `t3_thread_send`: "Your turn ended without a status word. Continue now and return DONE, STOPPED, HANDOFF, PUSHED or QUESTIONS." Say so in your next message. Never tell the user "still waiting" about a child with no active run. Before any "waiting" message, check that every child that hasn't reported has a running run.
 6. **Merge the batch** when every ticket in it is `DONE` or given up. Run [Batch merge](#batch-merge).
 7. **Repeat** from step 1 until the frontier is empty or the user ends the run. Then write the final report.
 
@@ -77,7 +77,7 @@ Surfaced: <title | type | blocked-by ticket names>, one per line, on DONE
 
 ## Ticket messages
 
-Post one message to the user when each child is spawned and one when it returns `DONE`, `STOPPED` or `HANDOFF`. Use these templates as written. Fill fields from the master's own state and the child's report. Write `-` for a field you don't have, and leave out a line whose list is empty.
+Post one message to the user when each child starts, and one when it returns `DONE`, `STOPPED` or `HANDOFF`. Use these templates as written. Fill the fields from the master's own state and the child's report. Write `-` for a field you don't have, and leave out a line whose list is empty.
 
 On spawn:
 
@@ -115,36 +115,36 @@ On `DONE`, using the child's `Timing:` line for Time, Phases, Events and Cost:
 
 Take CI duration from the watched run (`gh run view <id> --json startedAt,updatedAt`).
 
-On `STOPPED` or `HANDOFF`, use the `DONE` layout with the header `■ **Stopped: …**` or `↻ **Handed off: …**`. Replace the Decision line with **Problems:** (one per line) or **Handoff:** `<branch>` · audit round <r>. Leave out Surfaced. These children return no `Timing:` line, so get it with `python3 -I ~/.claude/skills/wayfinder-runner/wf-time.py close --slug <slug> --ticket <number> --dry-run`, which records nothing.
+On `STOPPED` or `HANDOFF`, use the `DONE` layout with the header `■ **Stopped: …**` or `↻ **Handed off: …**`. Replace the Decision line with **Problems:** (one per line) or **Handoff:** `<branch>` · audit round <r>. Leave out Surfaced. These children return no `Timing:` line. Get it with `python3 -I ~/.claude/skills/wayfinder-runner/wf-time.py close --slug <slug> --ticket <number> --dry-run`, which records nothing.
 
 ## CI
 
-If the child returned a PR URL, call `watch_pull_request` with it. When the watch wakes you, send the child "CI green" or "CI red: <failing job and run URL>" with `t3_thread_send` to its `childThreadId`. If the repo has remote CI but no PR, find the run with `gh run list --branch <branch>`, run `gh run watch <id> --exit-status` as a background command, wait on it with `t3_background_wait`, and send the result the same way. If the repo has no remote CI, send "no CI". After the child returns `DONE`, call `unwatch_pull_request`.
+If the child returned a PR URL, call `watch_pull_request` with it. When the watch wakes you, send the child "CI green" or "CI red: <failing job and run URL>" with `t3_thread_send` to its `childThreadId`. If the repo has remote CI but no PR, find the run with `gh run list --branch <branch>`. Run `gh run watch <id> --exit-status` as a background command, wait for it with `t3_background_wait`, and send the result the same way. If the repo has no remote CI, send "no CI". After the child returns `DONE`, call `unwatch_pull_request`.
 
 ## Batch merge
 
-1. On the master branch, merge each `DONE` child branch with `--no-ff`, in blocking order where one exists. Resolve conflicts with the `resolving-merge-conflicts` skill.
-2. Add every child's Decisions line to `map.md`. Create the surfaced tickets with the next numbers after the map's highest, then wire blocking in a second pass. Graduate any fog the answers made specifiable. Commit this as one commit in the CLAUDE.md commit style.
-3. Run typecheck and the tests on the merged master branch. Push it and let its CI finish. A failure here comes from the merge, so fix it on the master branch with a sonnet subagent and the same limits as a CI fix.
-4. Ask the user once with `AskUserQuestion`, with a batch summary above it in the same message: each ticket's decision report path, SHA, audit verdict and CI result. The options are "Merge the batch to main", "Keep it on the master branch" and "Stop". On "Merge", merge the master branch to main and push without forcing. On "Keep", start the next batch from the master branch. On "Stop", write the final report.
+1. On the master branch, merge each `DONE` child branch with `--no-ff`, in blocking order where there is one. Resolve conflicts with the `resolving-merge-conflicts` skill.
+2. Add every child's Decisions line to `map.md`. Create the surfaced tickets with the next numbers after the map's highest, then add the blocking links in a second pass. Turn any fog the answers made specific into tickets. Make this one commit, in the CLAUDE.md commit style.
+3. Run the type check and the tests on the merged master branch. Push it and let its CI finish. A failure here comes from the merge, so fix it on the master branch with a sonnet subagent, using the same limits as a CI fix.
+4. Ask the user once with `AskUserQuestion`, and put a batch summary above it in the same message: each ticket's decision report path, SHA, audit verdict and CI result. The options are "Merge the batch to main", "Keep it on the master branch" and "Stop". On "Merge", merge the master branch to main and push without forcing. On "Keep", start the next batch from the master branch. On "Stop", write the final report.
 
 ## Escalation
 
-A stopped ticket keeps its thread. The thread's worktree, branch and history hold everything the child learned, and a fresh child pays to learn it again. On Nov 13 and 14, re-spawned children cost $168 of the $480 the master runs spent.
+A stopped ticket keeps its thread. The thread's worktree, branch and history hold everything the child learned. A fresh child has to pay to learn it again. On Nov 13 and 14, re-started children cost $168 of the $480 the master runs spent.
 
-1. **First `STOPPED`: resume.** Move the thread up one step with `t3_thread_configure` (`threadId` set to the child's `childThreadId`): a sonnet child goes to opus at high effort, and an opus child goes to xhigh effort. If the tool takes no effort option, change the model only. Then send it the open problems with `t3_thread_send`. The resume is the ticket's second attempt and gets five audit rounds of its own.
+1. **First `STOPPED`: resume.** Move the thread up one step with `t3_thread_configure` (`threadId` set to the child's `childThreadId`). A sonnet child goes to opus at high effort. An opus child goes to xhigh effort. If the tool has no effort option, change the model only. Then send it the open problems with `t3_thread_send`. The resume is the ticket's second attempt and gets five audit rounds of its own.
 2. **Second `STOPPED`: give it up.** Tell the child to commit its work as a draft. On the master branch, unclaim the ticket and add `Last child thread: <childThreadId> | branch <branch>` as the ticket file's last line, in one commit. List the ticket in the batch summary.
-3. **Picking it up later.** A later batch takes a ticket with that line only when the user asks or a merged decision changed its question. Claim it, then send the same thread with `t3_thread_send`: "Merge `wayfinder/<slug>-master` into your branch, then continue with these open problems: <problems>." That resume is one attempt with five rounds. If it stops, give the ticket up again as in step 2.
+3. **Picking it up later.** A later batch takes a ticket with that line only when the user asks, or when a merged decision changed its question. Claim it, then send that thread this message with `t3_thread_send`: "Merge `wayfinder/<slug>-master` into your branch, then continue with these open problems: <problems>." That resume is one attempt with five rounds. If it stops, give the ticket up again as in step 2.
 
-When the user asks to keep retrying a stopped ticket, each request buys one resume of its thread, as in step 3.
+If the user asks you to keep retrying a stopped ticket, each request buys one resume of its thread, as in step 3.
 
 ## Handoff
 
-`HANDOFF` means the child passed 150k tokens of context, committed its work and wrote a `## Handoff` section into the ticket on its branch. A fresh thread that starts from that section costs less per turn than the old one. Handle it without asking the user:
+`HANDOFF` means the child passed 150k tokens of context, committed its work, and wrote a `## Handoff` section into the ticket on its branch. A fresh thread that starts from that section costs less per turn than the old one. Handle it without asking the user:
 
 1. Call `delegate_task` with the old child's model, effort, role and `isolation: "worktree"`, a title of `<ticket name> (handoff <n>)`, and the [Child brief](#child-brief) with this line added after the map line: "Pick up the `## Handoff` section in the ticket on branch `<branch>` at `<sha>`. Create a new branch from it, because the old worktree still holds that branch."
-2. Replace the ticket's `taskId` and `childThreadId` with the new ones. Escalation acts on the new thread from now on.
-3. A handoff does not count as an attempt, and the audit round count carries over in the `## Handoff` section. A ticket's fourth handoff means it is too large for one ticket. Give it up as in Escalation step 2 and mark it "needs a split" in the batch summary.
+2. Replace the ticket's `taskId` and `childThreadId` with the new ones. From now on, Escalation acts on the new thread.
+3. A handoff does not count as an attempt. The audit round count carries over in the `## Handoff` section. A ticket's fourth handoff means it is too big for one ticket. Give it up as in Escalation step 2 and mark it "needs a split" in the batch summary.
 
 ## Token report
 
@@ -155,16 +155,16 @@ python3 -I ~/.claude/skills/wayfinder-master/token-report.py --since <start time
   master=wfm-<slug>-master-<run> '<ticket name>=wfm-<slug>-<ticket number>-<run>' ...
 ```
 
-List the master first, then one entry per child spawned so far. The script reads Claude Code transcripts, so it covers the master, every child, and each child's Claude council seat and fixer subagents. The Gemini and GPT council seats have no transcript, so say they were not measured. It prints a table per thread and model with input, cache write, cache read, output and cost, then two savings lines:
+List the master first, then one entry per child started so far. The script reads Claude Code transcripts. It covers the master, every child, and each child's Claude council seat and fixer subagents. The Gemini and GPT council seats have no transcript, so say they were not measured. It prints a table per thread and model with input, cache write, cache read, output and cost, then two savings lines:
 
-- Routing savings are measured: the same tokens priced as if every thread ran on the baseline model, minus the actual cost.
-- Fresh-context savings are an estimate: the cache reads one thread would have repeated if it had run every child ticket in turn.
+- Routing savings are measured. They are the same tokens priced as if every thread ran on the baseline model, minus the actual cost.
+- Fresh-context savings are an estimate. They are the cache reads one thread would have repeated if it had run every child ticket in turn.
 
-Show the script's output as is, then add one line per child giving the model it ran on and why. The script names any thread it could not find. A child on a non-Claude provider has no transcript, so say it was not measured. Prices live in `prices.json` next to the script. Edit that file when prices change.
+Show the script's output as it is. Then add one line per child with the model it ran on and why. The script names any thread it could not find. A child on a non-Claude provider has no transcript, so say it was not measured. Prices live in `prices.json` next to the script. Edit that file when prices change.
 
 ## Time report
 
-The master marks its own phases the way the runner does, with one Bash call at each start: `printf 'wft %s\n' '<phase>'`. The phases are `route` (Loop steps 1 to 3), `ci`, `merge` (Batch merge steps 1 to 3) and `gate` (Batch merge step 4). Time spent waiting for child reports is counted without a mark. Do not mention the marks in replies.
+The master marks its own phases the way the runner does, with one Bash call at each start: `printf 'wft %s\n' '<phase>'`. The phases are `route` (Loop steps 1 to 3), `ci`, `merge` (Batch merge steps 1 to 3) and `gate` (Batch merge step 4). Time spent waiting for child reports counts without a mark. Do not mention the marks in replies.
 
 Children close their own tickets and return the `Timing:` line. For the final report, run:
 
@@ -173,8 +173,8 @@ python3 -I ~/.claude/skills/wayfinder-runner/wf-time.py close --slug <slug> --ru
 python3 -I ~/.claude/skills/wayfinder-runner/wf-time.py report --slug <slug> --since <start time> --phases
 ```
 
-The first records this thread's own time. The second prints one row per ticket and one for the master, with wall, active, user-wait, other-wait and limit-blocked time, audit rounds, tool calls, limit hits, compactions and handoffs, then the totals per phase across tickets. Show its output as is. A child on a non-Claude provider has no transcript, so it has no row.
+The first command records this thread's own time. The second prints one row per ticket and one for the master. Each row shows wall, active, user-wait, other-wait and limit-blocked time, audit rounds, tool calls, limit hits, compactions and handoffs. It then prints the totals per phase across tickets. Show its output as it is. A child on a non-Claude provider has no transcript, so it has no row.
 
 ## Final report
 
-For each ticket, give its name, the model and effort with the reason (default or Jev raise), any escalation, the commit SHAs, the CI result, the decision report path and the child's thread link. Then give each batch's merge answer, list the tickets still on the frontier, and say whether the master branch holds work that is not on main. Include the [Time report](#time-report) output. End with an `AskUserQuestion` offering "Show the token report" or "Skip".
+For each ticket, give its name, the model and effort with the reason (default or Jev raise), any escalation, the commit SHAs, the CI result, the decision report path, and the child's thread link. Then give each batch's merge answer, list the tickets still on the frontier, and say whether the master branch holds work that is not on main. Include the [Time report](#time-report) output. End with an `AskUserQuestion` offering "Show the token report" or "Skip".

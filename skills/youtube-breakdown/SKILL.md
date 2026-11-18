@@ -7,19 +7,23 @@ description: Fetch a YouTube video's transcript and turn it into a tight, unslop
 
 ## 1. Fetch
 
-Run exactly one command; it prints a compact transcript (title, word count, a `[m:ss]` marker every 2 minutes):
+Run exactly one command. It prints a short transcript with the title, the word count, and a `[m:ss]` time marker every 2 minutes:
 
 ```bash
 ~/.claude/skills/youtube-breakdown/scripts/yt.py "<url-or-id>"
 ```
 
-Flags: `--lang es,en` sets language priority (it falls back to auto-translation). `--every 300` makes markers sparser. `--out path.txt` also saves the raw text, but only add it if the user asks for the transcript itself.
+Flags:
 
-Don't search the web, open the page, or re-fetch. The transcript is the source. If the script errors (captions disabled, private video, IP block), report the error in one line and stop.
+- `--lang es,en` sets the language order. It falls back to auto-translation.
+- `--every 300` puts the time markers further apart.
+- `--out path.txt` also saves the raw text. Add it only if the user asks for the transcript itself.
+
+Don't search the web, open the page, or fetch again. The transcript is the only source. If the script fails (captions off, private video, IP block), report the error in one line and stop.
 
 ## 2. Break down
 
-Write it straight from the transcript. Default shape (adjust if the user asked for something specific):
+Write it from the transcript alone. Use this shape unless the user asked for something else:
 
 ```
 **<Title>** — <channel>
@@ -29,8 +33,8 @@ Write it straight from the transcript. Default shape (adjust if the user asked f
 **Worth noting:** claims needing a source, caveats, or concrete numbers/tools/names mentioned (omit if none)
 ```
 
-Scale it to the video: a 3-minute clip gets a TL;DR and 2–3 bullets. Paraphrase; quote a line only when the exact wording matters. Keep it short. Cut sponsor reads, intros, and "like and subscribe".
+Match the length to the video. A 3-minute clip gets a TL;DR and 2–3 bullets. Paraphrase, and quote a line only when the exact words matter. Keep it short. Cut sponsor reads, intros, and "like and subscribe".
 
 ## 3. Unslop
 
-Apply the `unslop` skill to the breakdown before you show it. If it's already loaded this session, don't reload it.
+Run the `unslop` skill on the breakdown before you show it. If it is already loaded this session, don't load it again.
