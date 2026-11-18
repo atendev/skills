@@ -627,60 +627,82 @@ main() {
   # ── Stage 4 ──────────────────────────────────────────────────────────────
   stage "Summary"
   printf '\n'
-  local created
-  created="$(printf '%s\n' "$run_out" | grep -E '^(Created [0-9]+ link|Nothing to link)' || true)"
-  say "${created:-Nothing to link.}"
-  local linked left
+  local CYAN="" created rule_added linked left rule_tools rule_text
+  local line rest why path cnt dir
+  [[ -z "$BOLD" ]] || CYAN="$(tput setaf 6)"
+  created="$(printf '%s\n' "$run_out" | grep -E '^Created [0-9]+ link' || true)"
+  rule_added="$(printf '%s\n' "$run_out" | grep -E '^Added the install rule' || true)"
+  if [[ -n "$created" || -n "$rule_added" ]]; then
+    printf '  %s%s✓ All set%s\n' "$BOLD" "$GREEN" "$RESET"
+  else
+    printf '  %s%s○ Nothing new to do%s\n' "$BOLD" "$DIM" "$RESET"
+  fi
+  [[ -z "$created" ]] || say "$created"
+  [[ -z "$rule_added" ]] || say "$rule_added"
+
   linked="$(printf '%s\n' "$run_out" | awk '
     /^  link / {
       d = $0; sub(/^  link +/, "", d); sub(/ -> .*/, "", d); sub(/\/[^\/]*$/, "", d)
       if (!(d in n)) order[++k] = d
       n[d]++
     }
-    END { for (j = 1; j <= k; j++) printf "  - %d new link(s) in %s\n", n[order[j]], order[j] }
+    END { for (j = 1; j <= k; j++) printf "%d\t%s\n", n[order[j]], order[j] }
   ')"
   if [[ -n "$linked" ]]; then
-    printf '\n'
-    say "Linked:"
-    printf '%s\n' "$linked"
+    printf '\n  %s%sNew links%s\n' "$BOLD" "$BLUE" "$RESET"
+    while IFS=$'\t' read -r cnt dir; do
+      printf '    %s✓%s %-8s %s%s%s\n' "$GREEN" "$RESET" "$cnt link$([[ "$cnt" == 1 ]] || printf s)" "$DIM" "$(short_path "$dir")" "$RESET"
+    done <<< "$linked"
   fi
-  local rule_added rule_paste
-  rule_added="$(printf '%s\n' "$run_out" | grep -E '^Added the install rule' || true)"
-  rule_paste="$(printf '%s\n' "$run_out" | awk '
-    /^  note .* keeps global rules somewhere/ { n = $0; sub(/^  note +/, "", n); sub(/ keeps global rules.*/, "", n); print "  - " n }
-  ')"
-  if [[ -n "$rule_added" ]]; then
-    printf '\n'
-    say "$rule_added"
-    say "It tells agents to put new skills in the hub and then run link-skills."
-  fi
-  if [[ -n "$rule_paste" ]]; then
-    printf '\n'
-    say "These tools keep global rules where this script cannot edit. Paste this install rule into them yourself:"
-    printf '%s\n' "$rule_paste"
-    printf '\n'
-    printf '%s\n' "$run_out" | awk '/<!-- link-skills:start -->/ { p = 1 } p { print } /<!-- link-skills:end -->/ { exit }'
-  fi
+
   left="$(printf '%s\n' "$run_out" | grep -E '^  (conflict|own copy) |^  note .*left alone' || true)"
   if [[ -n "$left" ]]; then
-    printf '\n'
-    warn "Left alone, because something is already there:"
-    printf '%s\n' "$left"
-    note "Move or remove those by hand if you want them linked, then run this again."
+    printf '\n  %s%sLeft alone%s  %ssomething is already there%s\n' "$BOLD" "$YELLOW" "$RESET" "$DIM" "$RESET"
+    while IFS= read -r line; do
+      rest="${line#  }"
+      case "$rest" in
+        conflict*) rest="${rest#conflict}"; why="link points somewhere else" ;;
+        "own copy"*) rest="${rest#own copy}"; why="real folder" ;;
+        *) rest="${rest#note}"; why="not a regular file" ;;
+      esac
+      rest="${rest#"${rest%%[![:space:]]*}"}"
+      path="${rest%% -> *}"; path="${path%% (*}"
+      plan_row "$YELLOW" "!" "$(basename "$path")" "$why, in $(short_path "$(dirname "$path")")"
+    done <<< "$left"
+    printf '    %sMove or remove those by hand if you want them linked, then run this again.%s\n' "$DIM" "$RESET"
   fi
-  printf '\n'
-  say "Restart these so they pick up the skills:"
+
+  rule_tools="$(printf '%s\n' "$run_out" | awk '
+    /^  note .* keeps global rules somewhere/ {
+      n = $0; sub(/^  note +/, "", n); sub(/ keeps global rules.*/, "", n)
+      printf "%s%s", (c++ ? ", " : ""), n
+    }
+  ')"
+  if [[ -n "$rule_tools" ]]; then
+    rule_text="$(printf '%s\n' "$run_out" | awk '
+      /<!-- link-skills:start -->/ { p = 1; next }
+      /<!-- link-skills:end -->/ { exit }
+      p { sub(/^  /, ""); print }
+    ')"
+    printf '\n  %s%sOne manual step%s\n' "$BOLD" "$YELLOW" "$RESET"
+    say "$rule_tools keeps its global rules where this script cannot edit."
+    say "Copy the text between the two lines below and paste it into those rules."
+    printf '\n  %s%s▼ COPY FROM HERE ▼%s\n\n' "$BOLD" "$CYAN" "$RESET"
+    printf '%s\n' "$rule_text"
+    printf '\n  %s%s▲ COPY TO HERE ▲%s\n' "$BOLD" "$CYAN" "$RESET"
+  fi
+
+  printf '\n  %s%sRestart so they pick up the skills%s\n' "$BOLD" "$BLUE" "$RESET"
   for (( i = 0; i < CHOSEN_AI_COUNT; i++ )); do
-    say "- ${CHOSEN_AI_NAMES[$i]}"
+    printf '    %s↻%s %s\n' "$CYAN" "$RESET" "${CHOSEN_AI_NAMES[$i]}"
   done
   for (( i = 0; i < EXTRA_COUNT; i++ )); do
-    say "- any tool that reads ${EXTRA_DIRS[$i]}"
+    printf '    %s↻%s any tool that reads %s\n' "$CYAN" "$RESET" "${EXTRA_DIRS[$i]}"
   done
   printf '\n'
-  say "To add more skills later, run the link-skills skill, or run:"
-  say "$LINK_SCRIPT"
-  printf '\n'
-  printf '  %s✓ Done%s\n\n' "$GREEN" "$RESET"
+  note "Add more skills later: ask your agent to run the link-skills skill, or run"
+  note "$LINK_SCRIPT"
+  printf '\n  %s%s✓ Done%s\n\n' "$BOLD" "$GREEN" "$RESET"
 }
 
 main "$@"; exit $?
