@@ -18,8 +18,8 @@ My collection of skills for AI coding agents such as Claude Code. Each skill is 
 Clone the repo and run the wizard.
 
 ```sh
-git clone https://github.com/atendev/skills.git ~/Documents/Github/skills
-bash ~/Documents/Github/skills/install.sh
+git clone https://github.com/atendev/skills.git ~/atendev-skills
+bash ~/atendev-skills/install.sh
 ```
 
 The wizard lists the skills and first asks `Install all skills [y/N]`. If you answer no, it asks about each skill one at a time. Every question defaults to no, so only an explicit `y` installs or links anything. Then it finds the AI tools on your machine and asks `Link all detected tools [y/N]` the same way, with a one-by-one fallback. It shows the plan and waits for your OK before it changes anything. You can also pipe it from the web, which clones the repo to `~/.local/share/atendev-skills` first.
