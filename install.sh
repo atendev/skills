@@ -219,28 +219,38 @@ ask_yn() {
 # splash draws the opening screen.
 splash() {
   _clear
-  local art=(
-    "███████╗██╗  ██╗██╗██╗     ██╗     ███████╗"
-    "██╔════╝██║ ██╔╝██║██║     ██║     ██╔════╝"
-    "███████╗█████╔╝ ██║██║     ██║     ███████╗"
-    "╚════██║██╔═██╗ ██║██║     ██║     ╚════██║"
-    "███████║██║  ██╗██║███████╗███████╗███████║"
-    "╚══════╝╚═╝  ╚═╝╚═╝╚══════╝╚══════╝╚══════╝"
+  local aten=(
+    " █████╗ ████████╗███████╗███╗   ██╗"
+    "██╔══██╗╚══██╔══╝██╔════╝████╗  ██║"
+    "███████║   ██║   █████╗  ██╔██╗ ██║"
+    "██╔══██║   ██║   ██╔══╝  ██║╚██╗██║"
+    "██║  ██║   ██║   ███████╗██║ ╚████║"
+    "╚═╝  ╚═╝   ╚═╝   ╚══════╝╚═╝  ╚═══╝"
   )
-  local shades=(39 38 44 43 49 48) row color="" idx=0
-  local deep=0
+  local dev=(
+    "██████╗ ███████╗██╗   ██╗"
+    "██╔══██╗██╔════╝██║   ██║"
+    "██║  ██║█████╗  ██║   ██║"
+    "██║  ██║██╔══╝  ╚██╗ ██╔╝"
+    "██████╔╝███████╗ ╚████╔╝ "
+    "╚═════╝ ╚══════╝  ╚═══╝  "
+  )
+  local cool=(123 87 51 45 39 33) warm=(226 220 214 208 202 196)
+  local r c1 c2 deep=0
   if [[ -n "$BOLD" ]] && [[ "$(tput colors 2>/dev/null || echo 0)" -ge 256 ]]; then deep=1; fi
   printf '\n\n'
-  for row in "${art[@]}"; do
-    if (( deep )); then color=$(tput setaf "${shades[$idx]}"); else color="$BLUE"; fi
-    printf '   %s%s%s%s\n' "$BOLD" "$color" "$row" "$RESET"
-    idx=$((idx + 1))
+  for (( r = 0; r < 6; r++ )); do
+    if (( deep )); then
+      c1=$(tput setaf "${cool[$r]}"); c2=$(tput setaf "${warm[$r]}")
+    else
+      c1="$BLUE"; c2="$YELLOW"
+    fi
+    printf '   %s%s%s%s%s%s%s%s\n' "$BOLD" "$c1" "${aten[$r]}" "$RESET" "$BOLD" "$c2" "${dev[$r]}" "$RESET"
   done
   printf '\n'
-  printf '   %sSkills for your AI coding agents%s\n' "$BOLD" "$RESET"
-  printf '   %sby atendev%s\n\n' "$DIM" "$RESET"
+  printf '   %sSkills for your AI coding agents%s\n\n' "$BOLD" "$RESET"
   printf '   %sPick skills  →  Pick AI tools  →  Install%s\n\n' "$DIM" "$RESET"
-  printf '   %sTip: on every y/N question, pressing Enter means no.%s\n\n' "$DIM" "$RESET"
+  printf '   %sEvery y/N question defaults to no.%s\n\n' "$DIM" "$RESET"
   pause "Press Enter to begin"
 }
 
@@ -314,8 +324,114 @@ join_csv() {
   printf '%s' "$out"
 }
 
+# short_path "/home/x/y" prints "~/y" for paths under $HOME.
+short_path() {
+  if [[ "$1" == "$HOME"* ]]; then printf '~%s' "${1#"$HOME"}"; else printf '%s' "$1"; fi
+}
+
+# plan_row SYMBOL_COLOR SYMBOL NAME STATUS prints one checklist row.
+plan_row() {
+  printf '    %s%s%s %-20s %s%s%s\n' "$1" "$2" "$RESET" "$3" "$DIM" "$4" "$RESET"
+}
+
+# render_plan "PLAN" turns the link-skills dry-run text into a short checklist.
+# It sets PLAN_LINKS and PLAN_NOTES to the counts the script reported.
+render_plan() {
+  local line rest dest hub="" skip=0 conflicts=0 owns=0
+  PLAN_LINKS=0
+  PLAN_NOTES=0
+  printf '  %s✓%s will be created    %s○%s already in place    %s!%s left alone\n\n' \
+    "$GREEN" "$RESET" "$DIM" "$RESET" "$YELLOW" "$RESET"
+  while IFS= read -r line; do
+    if (( skip )); then
+      [[ "$line" == *"link-skills:end -->"* ]] && skip=0
+      continue
+    fi
+    case "$line" in
+      "" | "Conflicts and own copies"* | "Dry run"*) ;;
+      "Hub: "*) hub="${line#Hub: }"; hub="${hub%% (*}" ;;
+      "Add to hub from "*)
+        printf '  %sGlobal skills folder%s  %s%s%s\n' "$BOLD" "$RESET" "$DIM" "$(short_path "$hub")" "$RESET" ;;
+      "Summary: "*)
+        [[ "$line" =~ ([0-9]+)\ to\ link ]] && PLAN_LINKS="${BASH_REMATCH[1]}"
+        [[ "$line" =~ ([0-9]+)\ note ]] && PLAN_NOTES="${BASH_REMATCH[1]}"
+        [[ "$line" =~ ([0-9]+)\ conflict ]] && conflicts="${BASH_REMATCH[1]}"
+        [[ "$line" =~ ([0-9]+)\ own ]] && owns="${BASH_REMATCH[1]}" ;;
+      "  "*)
+        rest="${line#  }"
+        case "$rest" in
+          link\ *)
+            rest="${rest#link}"; rest="${rest#"${rest%%[![:space:]]*}"}"; dest="${rest%% -> *}"
+            plan_row "$GREEN" "✓" "$(basename "$dest")" "new link" ;;
+          ok\ *)
+            rest="${rest#ok}"; rest="${rest#"${rest%%[![:space:]]*}"}"
+            if [[ "$rest" == *" -> "* ]]; then
+              plan_row "$DIM" "○" "$(basename "${rest%% -> *}")" "already linked"
+            else
+              plan_row "$DIM" "○" "$(basename "${rest%% (*}")" "install rule already there"
+            fi ;;
+          conflict\ *)
+            rest="${rest#conflict}"; rest="${rest#"${rest%%[![:space:]]*}"}"
+            plan_row "$YELLOW" "!" "$(basename "${rest%% -> *}")" "link points somewhere else, left alone" ;;
+          own\ copy\ *)
+            rest="${rest#own copy}"; rest="${rest#"${rest%%[![:space:]]*}"}"
+            plan_row "$YELLOW" "!" "$(basename "${rest%% -> *}")" "real folder, left alone" ;;
+          note\ *)
+            rest="${rest#note}"; rest="${rest#"${rest%%[![:space:]]*}"}"
+            case "$rest" in
+              *"keeps global rules"*)
+                printf '    %s›%s %spaste the install rule into %s yourself (shown at the end)%s\n' \
+                  "$DIM" "$RESET" "$DIM" "${rest%% keeps global*}" "$RESET"
+                skip=1 ;;
+              *"will add the install rule"*) plan_row "$GREEN" "✓" "$(basename "${rest%% (*}")" "add the install rule" ;;
+              *"will create it"*) plan_row "$GREEN" "✓" "$(basename "${rest%% (*}")" "create it with the install rule" ;;
+              *) plan_row "$YELLOW" "!" "$(basename "${rest%% (*}")" "not a regular file, left alone" ;;
+            esac ;;
+        esac ;;
+      *)
+        dest="${line#*(}"; dest="${dest%%)*}"
+        printf '\n  %s%s%s  %s%s%s\n' "$BOLD" "${line%% (*}" "$RESET" "$DIM" "$(short_path "$dest")" "$RESET" ;;
+    esac
+  done <<< "$1"
+  printf '\n  Will create %s link(s)' "$PLAN_LINKS"
+  (( PLAN_NOTES == 0 )) || printf ' and add %s note(s)' "$PLAN_NOTES"
+  printf '.'
+  if (( conflicts + owns > 0 )); then
+    printf ' %s%s left alone.%s' "$YELLOW" "$((conflicts + owns))" "$RESET"
+  fi
+  printf '\n\n'
+}
+
+# skill_intro REPO prints the question and the list of skills.
+skill_intro() {
+  local n
+  say "Which skills would you like to install?"
+  say "Available skills:"
+  for n in "${SKILL_NAMES[@]}"; do
+    printf '  - %s%s%s: %s\n' "$BOLD" "$n" "$RESET" "$(skill_blurb "$n" "$1")"
+  done
+  printf '\n'
+  note "The default answer is no."
+  printf '\n'
+}
+
 main() {
-  local SCRIPT_DIR="" src="${BASH_SOURCE[0]:-}"
+  local SCRIPT_DIR="" src="${BASH_SOURCE[0]:-}" arg
+  local FORCE_SCREENS=0
+  [[ -z "${ATENDEV_FORCE_SCREENS:-}" ]] || FORCE_SCREENS=1
+  for arg in "$@"; do
+    case "$arg" in
+      --force-screens) FORCE_SCREENS=1 ;;
+      -h | --help)
+        printf 'Usage: install.sh [--force-screens]\n\n'
+        printf 'Walks you through installing skills and linking them into your AI tools.\n\n'
+        printf '  --force-screens   Always show the confirm screen, even when every link\n'
+        printf '                    already exists. For testing. Piped installs can set\n'
+        printf '                    ATENDEV_FORCE_SCREENS=1 instead.\n'
+        exit 0 ;;
+      *) die "Unknown option: $arg. Try --help." ;;
+    esac
+  done
 
   if [[ -n "$src" && -f "$src" ]]; then
     SCRIPT_DIR="$(cd "$(dirname "$src")" && pwd)"
@@ -368,23 +484,27 @@ main() {
     SKILL_NAMES[SKILL_COUNT]="$name"
     SKILL_COUNT=$((SKILL_COUNT + 1))
   done
-  say "Which skills would you like to install?"
-  say "Available skills:"
-  local i
-  for (( i = 0; i < SKILL_COUNT; i++ )); do
-    printf '  - %s%s%s: %s\n' "$BOLD" "${SKILL_NAMES[$i]}" "$RESET" "$(skill_blurb "${SKILL_NAMES[$i]}" "$REPO_DIR")"
-  done
-  printf '\n'
-  note "Press Enter to skip a skill. Only y or yes installs it."
-  printf '\n'
-  local CHOSEN_SKILLS=() CHOSEN_SKILL_COUNT=0 answer
-  for (( i = 0; i < SKILL_COUNT; i++ )); do
-    ask_yn answer "Install ${SKILL_NAMES[$i]} [y/N]: "
-    if [[ "$answer" == "y" ]]; then
+  local i CHOSEN_SKILLS=() CHOSEN_SKILL_COUNT=0 answer
+  skill_intro "$REPO_DIR"
+  ask_yn answer "Install all skills [y/N]: "
+  if [[ "$answer" == "y" ]]; then
+    for (( i = 0; i < SKILL_COUNT; i++ )); do
       CHOSEN_SKILLS[CHOSEN_SKILL_COUNT]="${SKILL_NAMES[$i]}"
       CHOSEN_SKILL_COUNT=$((CHOSEN_SKILL_COUNT + 1))
-    fi
-  done
+    done
+  else
+    # Redraw the same page without the install-all question, then ask one by one.
+    _STAGE_INDEX=$((_STAGE_INDEX - 1))
+    stage "Pick skills"
+    skill_intro "$REPO_DIR"
+    for (( i = 0; i < SKILL_COUNT; i++ )); do
+      ask_yn answer "Install ${SKILL_NAMES[$i]} [y/N]: "
+      if [[ "$answer" == "y" ]]; then
+        CHOSEN_SKILLS[CHOSEN_SKILL_COUNT]="${SKILL_NAMES[$i]}"
+        CHOSEN_SKILL_COUNT=$((CHOSEN_SKILL_COUNT + 1))
+      fi
+    done
+  fi
   if (( CHOSEN_SKILL_COUNT == 0 )); then
     printf '\n'
     say "You did not pick any skills. Nothing to install."
@@ -424,7 +544,7 @@ main() {
       say "- ${TOOL_DISPLAY[$i]}: ${TOOL_PATHS[$i]}"
     done
     printf '\n'
-    note "Press Enter to skip a tool. Only y or yes links it."
+    note "The default answer is no."
     printf '\n'
     for (( i = 0; i < TOOL_COUNT; i++ )); do
       ask_yn answer "Link ${TOOL_DISPLAY[$i]} [y/N]: "
@@ -467,17 +587,22 @@ main() {
   done
   say "Here is what will happen. Nothing has changed yet."
   printf '\n'
-  local plan
+  local plan run_out
   plan="$("${CMD[@]}" --dry-run)" || die "The plan failed. See the message above."
-  printf '%s\n\n' "$plan"
-  if ! confirm "Go ahead and create these links?"; then
+  render_plan "$plan"
+  if (( PLAN_LINKS == 0 && PLAN_NOTES == 0 && FORCE_SCREENS == 0 )); then
+    say "Everything you picked is already in place. Nothing to change."
     printf '\n'
-    say "Stopped. Nothing was changed."
-    printf '\n'
-    exit 0
+    run_out="$plan"
+  else
+    if ! confirm "Go ahead and make these changes?"; then
+      printf '\n'
+      say "Stopped. Nothing was changed."
+      printf '\n'
+      exit 0
+    fi
+    run_out="$("${CMD[@]}" --yes)" || { printf '%s\n' "$run_out"; die "link-skills.sh failed. See the output above."; }
   fi
-  local run_out
-  run_out="$("${CMD[@]}" --yes)" || { printf '%s\n' "$run_out"; die "link-skills.sh failed. See the output above."; }
 
   # ── Stage 4 ──────────────────────────────────────────────────────────────
   stage "Summary"
@@ -511,8 +636,10 @@ main() {
   fi
   if [[ -n "$rule_paste" ]]; then
     printf '\n'
-    say "These tools keep global rules where this script cannot edit. Paste the install rule from the plan above into them yourself:"
+    say "These tools keep global rules where this script cannot edit. Paste this install rule into them yourself:"
     printf '%s\n' "$rule_paste"
+    printf '\n'
+    printf '%s\n' "$run_out" | awk '/<!-- link-skills:start -->/ { p = 1 } p { print } /<!-- link-skills:end -->/ { exit }'
   fi
   left="$(printf '%s\n' "$run_out" | grep -E '^  (conflict|own copy) |^  note .*left alone' || true)"
   if [[ -n "$left" ]]; then
