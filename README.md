@@ -31,7 +31,7 @@ Start a new session in each tool so it finds the skills.
 
 ## How the linking works
 
-All skills live in one global folder, `~/.agents/skills`. Each installed AI tool gets one symlink per skill, from its own `skills/` folder to the global folder. Skills that ship with a tool stay in that tool's folder and are never touched. The script never deletes or overwrites anything. It leaves real folders and wrong links alone and tells you about them.
+All skills live in one global folder, `~/.agents/skills`. Each installed AI tool gets one symlink per skill, from its own `skills/` folder to the global folder. Skills that ship with a tool stay in that tool's folder and are never touched. The script only creates folders and symlinks and appends a note. It never deletes or overwrites anything. It leaves real folders and wrong links alone and tells you about them. It also adds a short install rule note to each tool's global instruction file where it can (Claude Code, Codex and Gemini CLI), and prints the text to paste for the others. Use `--no-note` to skip that.
 
 Install new skills into `~/.agents/skills`, then run `skills/link-skills/scripts/link-skills.sh` (or ask your agent to run the `link-skills` skill). Use `--dry-run` first to see the plan.
 

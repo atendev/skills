@@ -452,7 +452,22 @@ main() {
     say "Linked:"
     printf '%s\n' "$linked"
   fi
-  left="$(printf '%s\n' "$run_out" | grep -E '^  (conflict|own copy) ' || true)"
+  local rule_added rule_paste
+  rule_added="$(printf '%s\n' "$run_out" | grep -E '^Added the install rule' || true)"
+  rule_paste="$(printf '%s\n' "$run_out" | awk '
+    /^  note .* keeps global rules somewhere/ { n = $0; sub(/^  note +/, "", n); sub(/ keeps global rules.*/, "", n); print "  - " n }
+  ')"
+  if [[ -n "$rule_added" ]]; then
+    printf '\n'
+    say "$rule_added"
+    say "It tells agents to put new skills in the hub and then run link-skills."
+  fi
+  if [[ -n "$rule_paste" ]]; then
+    printf '\n'
+    say "These tools keep global rules where this script cannot edit. Paste the install rule from the plan above into them yourself:"
+    printf '%s\n' "$rule_paste"
+  fi
+  left="$(printf '%s\n' "$run_out" | grep -E '^  (conflict|own copy) |^  note .*left alone' || true)"
   if [[ -n "$left" ]]; then
     printf '\n'
     warn "Left alone, because something is already there:"
