@@ -402,6 +402,19 @@ render_plan() {
   printf '\n\n'
 }
 
+# tool_intro prints the detected tools. It reads TOOL_DISPLAY, TOOL_PATHS and
+# TOOL_COUNT from main.
+tool_intro() {
+  local t
+  say "Detected AI tools:"
+  for (( t = 0; t < TOOL_COUNT; t++ )); do
+    say "- ${TOOL_DISPLAY[$t]}: ${TOOL_PATHS[$t]}"
+  done
+  printf '\n'
+  note "The default answer is no."
+  printf '\n'
+}
+
 # skill_intro REPO prints the question and the list of skills.
 skill_intro() {
   local n
@@ -539,21 +552,28 @@ main() {
       EXTRA_COUNT=$((EXTRA_COUNT + 1))
     fi
   else
-    say "Detected AI tools:"
-    for (( i = 0; i < TOOL_COUNT; i++ )); do
-      say "- ${TOOL_DISPLAY[$i]}: ${TOOL_PATHS[$i]}"
-    done
-    printf '\n'
-    note "The default answer is no."
-    printf '\n'
-    for (( i = 0; i < TOOL_COUNT; i++ )); do
-      ask_yn answer "Link ${TOOL_DISPLAY[$i]} [y/N]: "
-      if [[ "$answer" == "y" ]]; then
+    tool_intro
+    ask_yn answer "Link all detected tools [y/N]: "
+    if [[ "$answer" == "y" ]]; then
+      for (( i = 0; i < TOOL_COUNT; i++ )); do
         CHOSEN_AI[CHOSEN_AI_COUNT]="${TOOL_NAMES[$i]}"
         CHOSEN_AI_NAMES[CHOSEN_AI_COUNT]="${TOOL_DISPLAY[$i]}"
         CHOSEN_AI_COUNT=$((CHOSEN_AI_COUNT + 1))
-      fi
-    done
+      done
+    else
+      # Redraw the same page without the link-all question, then ask one by one.
+      _STAGE_INDEX=$((_STAGE_INDEX - 1))
+      stage "Pick AI tools"
+      tool_intro
+      for (( i = 0; i < TOOL_COUNT; i++ )); do
+        ask_yn answer "Link ${TOOL_DISPLAY[$i]} [y/N]: "
+        if [[ "$answer" == "y" ]]; then
+          CHOSEN_AI[CHOSEN_AI_COUNT]="${TOOL_NAMES[$i]}"
+          CHOSEN_AI_NAMES[CHOSEN_AI_COUNT]="${TOOL_DISPLAY[$i]}"
+          CHOSEN_AI_COUNT=$((CHOSEN_AI_COUNT + 1))
+        fi
+      done
+    fi
   fi
   while true; do
     ask_yn answer "Add another skills folder (for example ./.claude/skills in a project)? [y/N] "
