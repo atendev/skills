@@ -184,7 +184,7 @@ finish() {
 # Replace the example below. Set TOTAL_STAGES to match the stages you write.
 # ──────────────────────────────────────────────────────────────────────────
 
-TOTAL_STAGES=5
+TOTAL_STAGES=4
 
 # This wizard never writes a .env file, so keep the library away from one.
 ENV_FILE=/dev/null
@@ -197,7 +197,8 @@ die() {
   exit 1
 }
 
-# ask_yn VAR "Prompt: " asks until the answer is y/yes or n/no. Sets VAR to y or n.
+# ask_yn VAR "Prompt: " asks until the answer is y/yes or n/no. Pressing Enter
+# alone counts as no. Sets VAR to y or n.
 ask_yn() {
   local var="$1" prompt="$2" reply="" lower=""
   while true; do
@@ -209,10 +210,53 @@ ask_yn() {
     lower=$(printf '%s' "$reply" | tr '[:upper:]' '[:lower:]')
     case "$lower" in
       y | yes) printf -v "$var" '%s' y; return 0 ;;
-      n | no) printf -v "$var" '%s' n; return 0 ;;
-      *) warn "Please answer y or n." ;;
+      "" | n | no) printf -v "$var" '%s' n; return 0 ;;
+      *) warn "Please answer y or n, or press Enter for no." ;;
     esac
   done
+}
+
+# splash draws the opening screen.
+splash() {
+  _clear
+  local art=(
+    "███████╗██╗  ██╗██╗██╗     ██╗     ███████╗"
+    "██╔════╝██║ ██╔╝██║██║     ██║     ██╔════╝"
+    "███████╗█████╔╝ ██║██║     ██║     ███████╗"
+    "╚════██║██╔═██╗ ██║██║     ██║     ╚════██║"
+    "███████║██║  ██╗██║███████╗███████╗███████║"
+    "╚══════╝╚═╝  ╚═╝╚═╝╚══════╝╚══════╝╚══════╝"
+  )
+  local shades=(39 38 44 43 49 48) row color="" idx=0
+  local deep=0
+  if [[ -n "$BOLD" ]] && [[ "$(tput colors 2>/dev/null || echo 0)" -ge 256 ]]; then deep=1; fi
+  printf '\n\n'
+  for row in "${art[@]}"; do
+    if (( deep )); then color=$(tput setaf "${shades[$idx]}"); else color="$BLUE"; fi
+    printf '   %s%s%s%s\n' "$BOLD" "$color" "$row" "$RESET"
+    idx=$((idx + 1))
+  done
+  printf '\n'
+  printf '   %sSkills for your AI coding agents%s\n' "$BOLD" "$RESET"
+  printf '   %sby atendev%s\n\n' "$DIM" "$RESET"
+  printf '   %sPick skills  →  Pick AI tools  →  Install%s\n\n' "$DIM" "$RESET"
+  printf '   %sTip: on every y/N question, pressing Enter means no.%s\n\n' "$DIM" "$RESET"
+  pause "Press Enter to begin"
+}
+
+# skill_blurb NAME REPO prints the short line for the install list. It reads
+# REPO/skills.txt ("name: blurb" per line) and falls back to the SKILL.md text.
+skill_blurb() {
+  local b=""
+  if [[ -f "$2/skills.txt" ]]; then
+    b=$(awk -v n="$1" '
+      /^[ \t]*#/ { next }
+      { sub(/\r$/, "") }
+      index($0, n ": ") == 1 { print substr($0, length(n) + 3); exit }
+    ' "$2/skills.txt")
+  fi
+  if [[ -z "$b" ]]; then b=$(skill_desc "$2/skills/$1/SKILL.md"); fi
+  printf '%s' "$b"
 }
 
 # expand_tilde "~/x" gives "$HOME/x". Other paths pass through.
@@ -283,16 +327,15 @@ main() {
     fi
   fi
 
-  banner "Install atendev skills"
+  splash
 
-  # ── Stage 1 ──────────────────────────────────────────────────────────────
-  stage "Find the skills repo"
+  # Find the skills repo. This has no page of its own. It only speaks up when
+  # it has to download a copy.
   local REPO_DIR="" INSTALL_DIR=""
   if [[ -n "$SCRIPT_DIR" ]] && has_skills "$SCRIPT_DIR"; then
     REPO_DIR="$SCRIPT_DIR"
-    say "Using the checkout this script lives in:"
-    say "$REPO_DIR"
   else
+    printf '\n'
     say "This script is not inside a checkout of the skills repo."
     say "It will download one."
     printf '\n'
@@ -316,11 +359,11 @@ main() {
   local LINK_SCRIPT="$REPO_DIR/skills/link-skills/scripts/link-skills.sh"
   [[ -f "$LINK_SCRIPT" ]] || die "Missing $LINK_SCRIPT. Is this the skills repo?"
 
-  # ── Stage 2 ──────────────────────────────────────────────────────────────
+  # ── Stage 1 ──────────────────────────────────────────────────────────────
   stage "Pick skills"
   local SKILL_NAMES=() SKILL_COUNT=0 skill_dir name
-  for skill_dir in "$REPO_DIR"/skills/*/; do
-    [[ -f "${skill_dir}SKILL.md" ]] || continue
+  for skill_dir in "$REPO_DIR"/skills/*; do
+    [[ -f "$skill_dir/SKILL.md" ]] || continue
     name="$(basename "$skill_dir")"
     SKILL_NAMES[SKILL_COUNT]="$name"
     SKILL_COUNT=$((SKILL_COUNT + 1))
@@ -329,12 +372,14 @@ main() {
   say "Available skills:"
   local i
   for (( i = 0; i < SKILL_COUNT; i++ )); do
-    say "- ${SKILL_NAMES[$i]}: $(skill_desc "$REPO_DIR/skills/${SKILL_NAMES[$i]}/SKILL.md")"
+    printf '  - %s%s%s: %s\n' "$BOLD" "${SKILL_NAMES[$i]}" "$RESET" "$(skill_blurb "${SKILL_NAMES[$i]}" "$REPO_DIR")"
   done
+  printf '\n'
+  note "Press Enter to skip a skill. Only y or yes installs it."
   printf '\n'
   local CHOSEN_SKILLS=() CHOSEN_SKILL_COUNT=0 answer
   for (( i = 0; i < SKILL_COUNT; i++ )); do
-    ask_yn answer "Install ${SKILL_NAMES[$i]} [y/n]: "
+    ask_yn answer "Install ${SKILL_NAMES[$i]} [y/N]: "
     if [[ "$answer" == "y" ]]; then
       CHOSEN_SKILLS[CHOSEN_SKILL_COUNT]="${SKILL_NAMES[$i]}"
       CHOSEN_SKILL_COUNT=$((CHOSEN_SKILL_COUNT + 1))
@@ -349,7 +394,7 @@ main() {
   local ONLY_CSV
   ONLY_CSV="$(join_csv "${CHOSEN_SKILLS[@]}")"
 
-  # ── Stage 3 ──────────────────────────────────────────────────────────────
+  # ── Stage 2 ──────────────────────────────────────────────────────────────
   stage "Pick AI tools"
   local TOOL_NAMES=() TOOL_DISPLAY=() TOOL_PATHS=() TOOL_COUNT=0 line tname tdisp tpath
   local tools_out
@@ -379,8 +424,10 @@ main() {
       say "- ${TOOL_DISPLAY[$i]}: ${TOOL_PATHS[$i]}"
     done
     printf '\n'
+    note "Press Enter to skip a tool. Only y or yes links it."
+    printf '\n'
     for (( i = 0; i < TOOL_COUNT; i++ )); do
-      ask_yn answer "Link ${TOOL_DISPLAY[$i]} [y/n]: "
+      ask_yn answer "Link ${TOOL_DISPLAY[$i]} [y/N]: "
       if [[ "$answer" == "y" ]]; then
         CHOSEN_AI[CHOSEN_AI_COUNT]="${TOOL_NAMES[$i]}"
         CHOSEN_AI_NAMES[CHOSEN_AI_COUNT]="${TOOL_DISPLAY[$i]}"
@@ -389,7 +436,7 @@ main() {
     done
   fi
   while true; do
-    ask_yn answer "Add another skills folder (for example ./.claude/skills in a project)? [y/n] "
+    ask_yn answer "Add another skills folder (for example ./.claude/skills in a project)? [y/N] "
     [[ "$answer" == "y" ]] || break
     ask extra "Skills folder:"
     extra="$(expand_tilde "$extra")"
@@ -409,7 +456,7 @@ main() {
     exit 0
   fi
 
-  # ── Stage 4 ──────────────────────────────────────────────────────────────
+  # ── Stage 3 ──────────────────────────────────────────────────────────────
   stage "Confirm and install"
   local AI_ARG="none"
   (( CHOSEN_AI_COUNT == 0 )) || AI_ARG="$(join_csv "${CHOSEN_AI[@]}")"
@@ -432,7 +479,7 @@ main() {
   local run_out
   run_out="$("${CMD[@]}" --yes)" || { printf '%s\n' "$run_out"; die "link-skills.sh failed. See the output above."; }
 
-  # ── Stage 5 ──────────────────────────────────────────────────────────────
+  # ── Stage 4 ──────────────────────────────────────────────────────────────
   stage "Summary"
   printf '\n'
   local created

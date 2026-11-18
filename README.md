@@ -22,7 +22,7 @@ git clone https://github.com/atendev/skills.git ~/Documents/Github/skills
 bash ~/Documents/Github/skills/install.sh
 ```
 
-The wizard lists each skill and asks `Install <skill> [y/n]`. Then it finds the AI tools on your machine and asks which ones to link. It shows the plan and waits for your OK before it changes anything. You can also pipe it from the web, which clones the repo to `~/.local/share/atendev-skills` first.
+The wizard lists each skill and asks `Install <skill> [y/N]`. Pressing Enter answers no on every question, so only an explicit `y` installs or links anything. Then it finds the AI tools on your machine and asks which ones to link. It shows the plan and waits for your OK before it changes anything. You can also pipe it from the web, which clones the repo to `~/.local/share/atendev-skills` first.
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/atendev/skills/main/install.sh | bash
@@ -47,7 +47,7 @@ Link each skill under the folder name it already has. Some skills call scripts a
 
 ## Adding a skill
 
-Make a folder under `skills/` with a `SKILL.md` that starts with a `name` and a `description`. The description is what lets the agent decide when to use it.
+Make a folder under `skills/` with a `SKILL.md` that starts with a `name` and a `description`. The description is what lets the agent decide when to use it. Also add a line to `skills.txt` (`name: short blurb`) so the install wizard shows a clean one-line summary. Without a line, the wizard shows the start of the description.
 
 ## License
 

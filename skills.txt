@@ -1,0 +1,11 @@
+# One line per skill for the install wizard: name: short blurb.
+# Keep each blurb under about 60 characters. A skill with no line here falls
+# back to the start of its SKILL.md description.
+simply: Writes in plain English and shrinks long text into summaries
+wayfinder: Plans big work as a map of decision tickets
+wayfinder-master: Hands wayfinder tickets to runner threads in batches
+wayfinder-runner: Runs one wayfinder ticket from start to finish
+council-audit: Three AI auditors from three providers judge your work
+youtube-breakdown: Turns a YouTube video into a short breakdown
+apple: Applies Apple's design guidelines with exact numbers
+link-skills: Links your skills folder into every AI tool you use
